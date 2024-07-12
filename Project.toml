@@ -1,0 +1,8 @@
+name = "VertexPostprocessing"
+uuid = "2f788758-07b9-470e-9aa0-514f6555de3a"
+authors = ["Julian Stobbe <a@b.c>"]
+version = "0.1.0"
+
+[deps]
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
