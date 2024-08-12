@@ -109,44 +109,48 @@ end
 #     return U, β, n
 # end
 
+"""
+    read_anderson_parameters(file)
 
-# function read_anderson_parameters(file)
-#     content = open(file) do f
-#         readlines(f)
-#     end
-#     
-#     in_epsk = false
-#     in_tpar = false
-#     ϵₖ = []
-#     Vₖ = []
-#     μ = 0
-#     for line in content
-#         if "Eps(k)" == strip(line)
-#             in_epsk = true
-#             continue
-#         elseif "tpar(k)" == strip(line)
-#             in_epsk = false
-#             in_tpar = true
-#             continue
-#         end
-#         
-#         if in_epsk
-#             push!(ϵₖ, parse(Float64, line))
-#         elseif in_tpar
-#             # skip last line, which is mu
-#             if length(Vₖ) < length(ϵₖ)
-#                 push!(Vₖ, parse(Float64, line))
-#             else
-#                 if occursin("#", line)
-#                     μ = parse(Float64, line[1:(findfirst("#", line))[1] - 1])
-#                 else
-#                     μ = parse(Float64, line)
-#                 end
-#             end
-#         end
-#     end
-#     return convert(Array{Float64,1}, ϵₖ), convert(Array{Float64,1}, Vₖ), μ
-# end
+Reads Anderson parameters from legacy Fortran human readable file
+"""
+function read_anderson_parameters(file)
+    content = open(file) do f
+        readlines(f)
+    end
+    
+    in_epsk = false
+    in_tpar = false
+    ϵₖ = []
+    Vₖ = []
+    μ = 0
+    for line in content
+        if "Eps(k)" == strip(line)
+            in_epsk = true
+            continue
+        elseif "tpar(k)" == strip(line)
+            in_epsk = false
+            in_tpar = true
+            continue
+        end
+        
+        if in_epsk
+            push!(ϵₖ, parse(Float64, line))
+        elseif in_tpar
+            # skip last line, which is mu
+            if length(Vₖ) < length(ϵₖ)
+                push!(Vₖ, parse(Float64, line))
+            else
+                if occursin("#", line)
+                    μ = parse(Float64, line[1:(findfirst("#", line))[1] - 1])
+                else
+                    μ = parse(Float64, line)
+                end
+            end
+        end
+    end
+    return convert(Array{Float64,1}, ϵₖ), convert(Array{Float64,1}, Vₖ), μ
+end
 
 # function write_vert_chi(freqList::Array, ver::Array{Complex{Float64},1}, verdo::Array{Complex{Float64},1}, dirname::String, nBose::Int, nFermi::Int)
 #     open(dirname * "/vert_chi", "w") do f
