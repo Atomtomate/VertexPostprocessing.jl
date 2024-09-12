@@ -64,7 +64,7 @@ Warning! `G` must fulfill ``G^{-\\nu} = conj(G^{\\nu})``
 function compute_χ0(ω_range::AbstractArray{Int,1}, ν_range::AbstractArray{Int,1}, G::Array{Complex{Float64}, 1}, β::Float64; mode=:ph)
     !(mode in [:ph, :pp]) && error("unkown mode")
     χ0 = OffsetArray(Array{ComplexF64,2}(undef, length(ω_range), length(ν_range))) 
-    for ωm in ω_range, νn in νVector_range
+    for ωm in ω_range, νn in ν_range
         χ0[ωm,νn] = (mode == :ph) ? -β*get_conjsymm_f(G, νn)*get_conjsymm_f(G, νn+ωm) : -β*get_conjsymm_f(G, νn)*get_conjsymm_f(G, ωm-νn-1)
     end
     return χ0
@@ -86,7 +86,9 @@ end
 
 Computes `Fm` and `Fd` from `χm` and `χd`
 """
-function computeF_ph(freqList::Vector, χm::Vector{T}, χd::Vector{T}, χ0::OffsetMatrix, nBose::Int, nFermi::Int) where T
+function computeF_ph(freqList::Array, χm::Array{T}, χd::Array{T}, χ0::OffsetMatrix, nBose::Int, nFermi::Int) where T
+    @assert ndims(freqList) == ndims(χm)
+    @assert ndims(χd) == ndims(χm)
     Fm = similar(χm)
     Fd = similar(χd)
     for i in 1:size(freqList,1)
@@ -95,34 +97,36 @@ function computeF_ph(freqList::Vector, χm::Vector{T}, χd::Vector{T}, χ0::Offs
         Fm[i] = (-1.0/χ0[ω,ν])*(χm[i] - sub)*(1.0/χ0[ω,νp])
         Fd[i] = (-1.0/χ0[ω,ν])*(χd[i] - sub)*(1.0/χ0[ω,νp])
     end
-    return reshape(Fm, 2*nFermi, 2*nFermi, 2*nBose+1), reshape(Fd, 2*nFermi, 2*nFermi, 2*nBose+1)
+    return reshape_lin_to_rank3(Fm,nBose,nFermi), reshape_lin_to_rank3(Fd,nBose,nFermi)
 end
 
-function computeF_pp(freqList::Vector, χ_s::Vector{T}, χ_t::Vector{T}, χ0::Dict{Tuple{Int,Int},Complex{Float64}}, nBose::Int, nFermi::Int) where T
+function computeF_pp(freqList::Array, χ_s::Array{T}, χ_t::Array{T}, χ0::OffsetMatrix, nBose::Int, nFermi::Int) where T
+    @assert ndims(freqList) == ndims(χ_s)
+    @assert ndims(χ_t) == ndims(χ_s)
     F_s = similar(χ_s)
     F_t = similar(χ_t)
     for i in 1:size(freqList,1)
         ω, ν, νp = freqList[i]
-        sub = ν == νp ? χ0[(ω,ν)] : 0.0
-        F_s[i] = (-1.0/χ0[(ω,ν)])*(χ_s[i]+2*sub)*(1.0/χ0[(ω,νp)])
-        F_t[i] = (-1.0/χ0[(ω,ν)])*(χ_t[i]-2*sub)*(1.0/χ0[(ω,νp)])
+        sub = ν == νp ? χ0[ω,ν] : 0.0
+        F_s[i] = (-1.0/χ0[ω,ν])*(χ_s[i] + 2*sub)*(1.0/χ0[ω,νp])
+        F_t[i] = (-1.0/χ0[ω,ν])*(χ_t[i] - 2*sub)*(1.0/χ0[ω,νp])
     end
-    return reshape(F_s, 2*nFermi, 2*nFermi, 2*nBose+1), reshape(F_t, 2*nFermi, 2*nFermi, 2*nBose+1)
+    return reshape_lin_to_rank3(F_s,nBose,nFermi), reshape_lin_to_rank3(F_t,nBose,nFermi)
 end
 
 """
-    F_to_χ(freqList::Array, arr::Array{T}, gImp::Array{Complex{Float64}, 1}, β::Float64) where T <: Number
-    F_to_χ!(res, freqList::Array, arr::Array{T}, gImp::Array{Complex{Float64}, 1}, β::Float64) where T <: Number
+    G2_to_χ(freqList::Array, arr::Array{T}, gImp::Array{Complex{Float64}, 1}, β::Float64) where T <: Number
+    G2_to_χ!(res, freqList::Array, arr::Array{T}, gImp::Array{Complex{Float64}, 1}, β::Float64) where T <: Number
 
 Subtracts disconnected term ``\\delta_{\\omega 0} G^\\nu G^{\\nu'}`` from ``F^{\\nu\\nu'\\omega}``
 """
-function F_to_χ(freqList::Array, in::Array, gImp::OffsetArray{Complex{Float64}, 1}, β::Float64)
+function G2_to_χ(freqList::Array, in::Array, gImp::OffsetArray{Complex{Float64}, 1}, β::Float64)
     res = similar(in)
-    F_to_χ!(res, freqList, in, gImp, β)
+    G2_to_χ!(res, freqList, in, gImp, β)
     return res
 end
 
-function F_to_χ!(res::Array, freqList::Array, in::Array, gImp::OffsetArray{Complex{Float64}, 1}, β::Float64)
+function G2_to_χ!(res::Array, freqList::Array, in::Array, gImp::OffsetArray{Complex{Float64}, 1}, β::Float64)
     @assert all(size(res) .== size(in))
     res[:] .= in[:]
     for i in 1:size(freqList,1)
@@ -158,7 +162,7 @@ end
     computeΓ_ph(freqList::Array{Tuple,1}, χ_r::Array{ComplexF64,1}, χ0::OffsetMatrix{ComplexF64}, nBose::Int64, nFermi::Int64)
 
 freqList, χ_r are rank 3 Arrays of size [2*nBose + 1, 2*nFermi, 2*nFermi].
-Linear arrays should be reshaped using [`reshape_lin_to_rank3`](@ref reshape_lin_to_rank3).
+Linear arrays should be reshaped_lin_to_rank3 using [`reshape_lin_to_rank3`](@ref reshape_lin_to_rank3).
 If rank `1` shapes are provided, the conversion will be done internally.
 feeqList contains 3-Tuples with (ωn,νn,νpn), χ_r the corresponsing values of the susceptibilities at this frequencies.
 Returns the irreducible vertex `Γ` in this channel.
@@ -183,24 +187,35 @@ function computeΓ_ph(freqList::Array{Tuple{Int,Int,Int},1}, χ_r::Array{Complex
     return computeΓ_ph( reshape_lin_to_rank3(freqList,nBose,nFermi), reshape_lin_to_rank3(χ_r,nBose,nFermi), χ0, nBose, nFermi)
 end
 
-function computeΓ_pp(freqList::Array, χs::Array{T,3}, χt::Array{T,3}, χ0::OffsetMatrix{ComplexF64}, shift, nBose::Int64, nFermi::Int64) where T
-    Γs = fill!(Array{ComplexF64,3}(undef, 2*nFermi, 2*nFermi, 2*nBose+1), NaN)
-    Γt = fill!(Array{ComplexF64,3}(undef, 2*nFermi, 2*nFermi, 2*nBose+1), NaN)
-    # for (ωn,ω) in enumerate([0])
+"""
+    computeΓ_pp(freqList::Array{Tuple,3}, χs::Array{T,3}, χt::Array{T,3}, χ0::OffsetMatrix{ComplexF64}, nBose::Int64, nFermi::Int64) where T
+    computeΓ_pp(freqList::Array{Tuple,1}, χs::Array{T,3}, χt::Array{T,3}, χ0::OffsetMatrix{ComplexF64}, nBose::Int64, nFermi::Int64) where T
+
+Computes `Γ` in the particle-particle notation. Returns both singlet and triplet channel.
+For more details see also [`computeΓ_ph`](@ref computeΓ_ph)
+"""
+function computeΓ_pp(freqList::Array{Tuple{Int,Int,Int},3}, χs::Array{T,3}, χt::Array{T,3}, χ0::OffsetMatrix{ComplexF64}, nBose::Int64, nFermi::Int64) where T
+    Γs = similar(χs)
+    Γt = similar(χt)
+    Γs = fill!(Γs, NaN)
+    Γt = fill!(Γt, NaN)
     
-    for (ωi, ωn) in enumerate(-nBose:nBose)
-        non_nan_slice = find_non_nan_matrix(χs[:,:,ωi], nFermi)
+    for ωi in axes(freqList,1)
+        non_nan_slice = find_non_nan_matrix(χs[ωi,:,:], nFermi)
         if !isempty(non_nan_slice)
-            # if any(isnan.(χs[non_nan_slice,non_nan_slice,ωi]))
-            #     println("ERROR at $ωi/$ωn, NaN cut did not work. slice: $non_nan_slice")
-            # end
-            Γs[non_nan_slice,non_nan_slice,ωi] = 4 .* inv(χs[non_nan_slice,non_nan_slice,ωi])
-            Γt[non_nan_slice,non_nan_slice,ωi] = 4 .* inv(χt[non_nan_slice,non_nan_slice,ωi])
-            for (νi,νn) in enumerate((-nFermi:nFermi-1) .- shift*trunc(Int,ωn/2))
-                Γs[νi,νi,ωi] += 2/χ0[ωn,νn]
-                Γt[νi,νi,ωi] -= 2/χ0[ωn,νn]
+            Γs[ωi,non_nan_slice,non_nan_slice] = 4 .* inv(χs[ωi,non_nan_slice,non_nan_slice])
+            Γt[ωi,non_nan_slice,non_nan_slice] = 4 .* inv(χt[ωi,non_nan_slice,non_nan_slice])
+            for νi in axes(freqList, 2)
+                ωm, νn, νpn = freqList[ωi,νi,νi] 
+                Γs[ωi,νi,νi] += 2/χ0[ωm,νn]
+                Γt[ωi,νi,νi] -= 2/χ0[ωm,νn]
             end
         end
     end
     return Γs, Γt
 end
+
+function computeΓ_pp(freqList::Array{Tuple{Int,Int,Int},1}, χs::Array{ComplexF64,1}, χt::Array{ComplexF64,1}, χ0::OffsetMatrix{ComplexF64}, nBose::Int64, nFermi::Int64)
+    return computeΓ_pp(reshape_lin_to_rank3(freqList,nBose,nFermi), reshape_lin_to_rank3(χs,nBose,nFermi), reshape_lin_to_rank3(χt,nBose,nFermi), χ0, nBose, nFermi)
+end
+

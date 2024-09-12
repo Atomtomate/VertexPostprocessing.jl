@@ -26,9 +26,9 @@ Returns `3` arrays:
 function read_two_pt_function(fname::String)
     inp = readdlm(fname, Float64)
     freq = Float64.(inp[:,1:3])
-    Fup = inp[:,4] + inp[:,5]*1im
-    Fdo = inp[:,6] + inp[:,7]*1im
-    return freq, Fup, Fdo
+    Fupup = inp[:,4] + inp[:,5]*1im
+    Fupdo = inp[:,6] + inp[:,7]*1im
+    return freq, Fupup, Fupdo
 end
 
 """
@@ -37,14 +37,25 @@ read_chi_asympt(fname::String)
 Reads file with `7` columns, similar to [`read_two_pt_function`](@ref read_two_pt_function).
 The first colums are the frequencies, the remaining correspond to `3` one-frequency objects. 
 """
+# function read_chi_asympt(fname::String)
+#     inp = readdlm(fname, Float64)
+#     freq = Float64.(inp[:,1])
+#     χ_upup = inp[:,4] + inp[:,5]*1im
+#     χ_updo = inp[:,4] - inp[:,5]*1im
+#     χpp = inp[:,6] + inp[:,7]*1im
+#     return freq, χ_upup, χ_updo, χpp
+# end
 function read_chi_asympt(fname::String)
     inp = readdlm(fname, Float64)
     freq = Float64.(inp[:,1])
-    χ_upup = inp[:,4] + inp[:,5]*1im
-    χ_updo = inp[:,4] - inp[:,5]*1im
+    χ_upup = inp[:,2] + inp[:,3]*1im
+    χ_updo = inp[:,4] + inp[:,5]*1im
     χpp = inp[:,6] + inp[:,7]*1im
-    return freq, χ_upup, χ_updo, χpp
+    χm, χd = uu_ud_TO_m_d(χ_upup, χ_updo)
+    return freq, χm, χd, χpp
 end
+
+# function readGImp(filename; only_positive=false)
 
 # function readGImp(filename; only_positive=false)
 #     GFs = readdlm(filename)[:,1:end]

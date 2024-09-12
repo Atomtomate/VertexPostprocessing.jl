@@ -13,9 +13,11 @@ end
     include("GFTools.jl")
 end
 
-@testset "FullRun" begin
+@testset "Full Run" begin
     empty!(ARGS)
     push!(ARGS, abspath("./test_data/data_s1/grid_b5_f5_s1.jld2"))
     push!(ARGS, abspath("./test_data/data_s1"))
-    include("../scripts/expand_vertex.jl")
+    redirect_stdout(devnull) do 
+        include("../scripts/expand_vertex.jl")
+    end
 end

@@ -17,19 +17,19 @@ diff_F = abs.(TwoPartGF_updo_s0 .- TwoPartGF_updo_fs0) ./ abs.(TwoPartGF_updo_s0
 
 χ_upup_fs0 = F_to_χ(freqList_fs0, TwoPartGF_upup_fs0, GImp, β)
 χ_updo_fs0 = F_to_χ(freqList_fs0, TwoPartGF_updo_fs0, GImp, β)
-χ_d_fs0, χ_m_fs0 = uu_ud_TO_m_d(χ_upup_fs0, χ_updo_fs0) 
+χ_m_fs0, χ_d_fs0 = uu_ud_TO_m_d(χ_upup_fs0, χ_updo_fs0) 
 Γd_ph_fs0 = computeΓ_ph(freqList_fs0, χ_d_fs0, χ0_ph, nBose_fs0, nFermi_fs0);
 Γm_ph_fs0 = computeΓ_ph(freqList_fs0, χ_m_fs0, χ0_ph, nBose_fs0, nFermi_fs0);
 
 χ_upup_s0 = F_to_χ(freqList_s0, TwoPartGF_upup_s0, GImp, β)
 χ_updo_s0 = F_to_χ(freqList_s0, TwoPartGF_updo_s0, GImp, β)
-χ_d_s0, χ_m_s0 = uu_ud_TO_m_d(χ_upup_s0, χ_updo_s0) 
+χ_m_s0, χ_d_s0 = uu_ud_TO_m_d(χ_upup_s0, χ_updo_s0) 
 Γd_ph_s0 = computeΓ_ph(freqList_s0, χ_d_s0, χ0_ph, nBose_s0, nFermi_s0);
 Γm_ph_s0 = computeΓ_ph(freqList_s0, χ_m_s0, χ0_ph, nBose_s0, nFermi_s0);
 
 χ_upup_s1 = F_to_χ(freqList_s1, TwoPartGF_upup_s1, GImp, β)
 χ_updo_s1 = F_to_χ(freqList_s1, TwoPartGF_updo_s1, GImp, β)
-χ_d_s1, χ_m_s1 = uu_ud_TO_m_d(χ_upup_s1, χ_updo_s1) 
+χ_m_s1, χ_d_s1 = uu_ud_TO_m_d(χ_upup_s1, χ_updo_s1) 
 Γd_ph_s1 = computeΓ_ph(freqList_s1, χ_d_s1, χ0_ph, nBose_s1, nFermi_s1);
 Γm_ph_s1 = computeΓ_ph(freqList_s1, χ_m_s1, χ0_ph, nBose_s1, nFermi_s1);
 
