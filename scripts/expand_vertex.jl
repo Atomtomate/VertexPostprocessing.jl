@@ -72,8 +72,8 @@ println("Done with pp channel!")
 println("Storing results in DMFT_out.jld2")
 # #-1.0 .*  Γr
 jldopen(joinpath(dataDir,"DMFT2_out.jld2"), "w") do f
-    f["Γch"] = Γd
-    f["Γsp"] = Γm
+    f["Γch"] = -Γd      # Convention for lDGA is Γ → - Γ
+    f["Γsp"] = -Γm
     # f["Φpp_s"] = Φs
     # f["Φpp_t"] = Φt
     f["χDMFTch"] = reshape_lin_to_rank3(χd,nBose,nFermi)

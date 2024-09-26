@@ -52,7 +52,7 @@ function read_chi_asympt(fname::String)
     χ_updo = inp[:,4] + inp[:,5]*1im
     χpp = inp[:,6] + inp[:,7]*1im
     χm, χd = uu_ud_TO_m_d(χ_upup, χ_updo)
-    return freq, χm, χd, χpp
+    return freq, χd, χm, χpp
 end
 
 # function readGImp(filename; only_positive=false)
