@@ -33,7 +33,8 @@ Returns:
   - U::Float64
   - β::Float64
   - p::AndersonParameters
-  - GImp::Vector{ComplexF64}
+  - G0W::OffsetVector{ComplexF64}: Weiss Green's function
+  - GImp::OffsetVector{ComplexF64}
   - nden::Float64
 """
 function restore_1pt_GF(config_f::String, andpar_f::String; nFreq::Int=2000)
@@ -44,13 +45,15 @@ function restore_1pt_GF(config_f::String, andpar_f::String; nFreq::Int=2000)
     p  = AIMParams(ϵₖ, Vₖ)
     basis  = jED.Basis(length(ϵₖ) + 1);
     νnGrid = jED.OffsetVector([1im * (2*n+1)*π/β for n in 0:nFreq-1], 0:nFreq-1)
+    G0W = GWeiss(νnGrid,μ,p)
     model  = AIM(ϵₖ, Vₖ, μ, U)
     es     = Eigenspace(model, basis, verbose=false);
     GImp, nden = calc_GF_1(basis, es, νnGrid, β, with_density=true)
     indices = (-last(axes(GImp,1))-1):last(axes(GImp,1))
     GImp = OffsetVector(vcat(conj.(reverse(GImp.parent)), GImp.parent), indices)
+    G0W = OffsetVector(vcat(conj.(reverse(G0W.parent)), G0W.parent), indices)
     νnGrid =  jED.OffsetVector([1im * (2*n+1)*π/β for n in -nFreq:nFreq-1], -nFreq:nFreq-1)
-    return U, β, p, νnGrid, GImp, μ, nden
+    return U, β, p, νnGrid, G0W, GImp, μ, nden
 end
 
 
