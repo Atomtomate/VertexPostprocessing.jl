@@ -41,7 +41,7 @@ nBose, nFermi, shift, freqList, TwoPartGF_upup, TwoPartGF_updo = expand_2PtGF_CS
 println("Done expanding!")
 
 println("Calculating single particle Green's function")
-U, β, p, νnGrid, G0W, GImp, μ, nden = restore_1pt_GF(joinpath(dataDir, "config.toml"), joinpath(dataDir, "hubb.andpar"); nFreq=2000)
+U, β, p, νnGrid, G0W, GImp, ΣImp, μ, nden = restore_1pt_GF(joinpath(dataDir, "config.toml"), joinpath(dataDir, "hubb.andpar"); nFreq=2000)
 gLoc = nothing
 println("mu = $μ, U= $U, beta = $β, nden = $nden")
 println("andpar: \n $p")
@@ -65,12 +65,12 @@ res = isfile(joinpath(dataDir, "chi_asympt")) ? read_chi_asympt(joinpath(dataDir
 _, χ_d_asympt, χ_m_asympt, χ_pp_asympt = res
 
 
-# χ0_pp_full   = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β; mode=:pp)
-# χpp_s, χpp_t = χph_to_χpp(freqList, χ_upup, χ_updo, χ0_pp_full, shift, nBose, nFermi)
-# Fs, Ft       = computeF_pp(freqList, χpp_s, χpp_t, χ0_pp_full, nBose, nFermi)
-# Γs, Γt       = computeΓ_pp(freqList, χpp_s, χpp_t, χ0_pp_full, nBose, nFermi)
-# Φs = Fs .- Γs
-# Φt = Ft .- Γt
+χ0_pp_full   = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β; mode=:pp)
+χpp_s, χpp_t = χph_to_χpp(freqList, χ_upup, χ_updo, χ0_pp_full, shift, nBose, nFermi)
+Fs, Ft       = computeF_pp(freqList, χpp_s, χpp_t, χ0_pp_full, nBose, nFermi)
+Γs, Γt       = computeΓ_pp(freqList, χpp_s, χpp_t, χ0_pp_full, nBose, nFermi)
+Φs = Fs .- Γs
+Φt = Ft .- Γt
 println("Done with pp channel!")
 
 ΣLoc_m, ΣLoc_d = calc_local_EoM(Fm, Fd, GImp, U, β, nden, nBose, nFermi, shift)
@@ -78,12 +78,12 @@ local_EoM_check = abs.(0.5 .* (ΣLoc_m .+ ΣLoc_d) .- ΣImp[axes(ΣLoc_m,1)])
 fitCheck = if !isnothing(gLoc)
     abs.(gLoc .- G0W)
 else
-    lDGAPostprocessing.OffsetVector(repeat([NaN], 6), 0:5)
+    VertexPostprocessing.OffsetVector(repeat([NaN], 6), 0:5)
 end
-sum_vk, min_eps_diff, min_vk, min_eps = andpar_check_values(ϵₖ, Vₖ)
+sum_vk, min_eps_diff, min_vk, min_eps = andpar_check_values(p.ϵₖ, p.Vₖ)
 println(repeat("=",80))
-println(" ϵₖ = $(lpad.(round.(ϵₖ, digits=4),9)...)")
-println(" Vₖ = $(lpad.(round.(Vₖ, digits=4),9)...)")
+println(" ϵₖ = $(lpad.(round.(p.ϵₖ, digits=4),9)...)")
+println(" Vₖ = $(lpad.(round.(p.Vₖ, digits=4),9)...)")
 println("   1. min(|Vₖ|)           = ", min_vk)
 println("   2. ∑Vₗ^2               = ", sum_vk)
 println("   3. min(|ϵₖ|)           = ", min_eps)

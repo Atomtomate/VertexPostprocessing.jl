@@ -52,8 +52,9 @@ function restore_1pt_GF(config_f::String, andpar_f::String; nFreq::Int=2000)
     indices = (-last(axes(GImp,1))-1):last(axes(GImp,1))
     GImp = OffsetVector(vcat(conj.(reverse(GImp.parent)), GImp.parent), indices)
     G0W = OffsetVector(vcat(conj.(reverse(G0W.parent)), G0W.parent), indices)
+    ΣImp   = Σ_from_GImp(G0W, GImp)
     νnGrid =  jED.OffsetVector([1im * (2*n+1)*π/β for n in -nFreq:nFreq-1], -nFreq:nFreq-1)
-    return U, β, p, νnGrid, G0W, GImp, μ, nden
+    return U, β, p, νnGrid, G0W, GImp, ΣImp, μ, nden
 end
 
 
@@ -232,7 +233,7 @@ The result should be equal to the impuirty self-energy and can also be used to d
 for the non-local equation of motion.
 """
 function calc_local_EoM(Fm, Fd, gImp_in::OffsetVector, U::Float64, β::Float64, n::Float64, n_iω::Int, n_iν::Int, shift)
-    νmax = floor(Int, size(Fm,1)/2)
+    νmax = floor(Int, size(Fm,2)/2)
     ωGrid = -n_iω:n_iω
     ΣLoc_m = OffsetVector(zeros(ComplexF64, νmax), 0:νmax-1) 
     ΣLoc_d = OffsetVector(zeros(ComplexF64, νmax), 0:νmax-1)
@@ -244,8 +245,8 @@ function calc_local_EoM(Fm, Fd, gImp_in::OffsetVector, U::Float64, β::Float64, 
         for (νi,νn) in enumerate(νnGrid)
             for (νpi,νpn) in enumerate(νnGrid)
                 if νn >= 0 && νn < νmax   
-                    ΣLoc_m[νn] += gImp[νpn] * gImp[νpn + ωm] * gImp[νn + ωm] * Fm[νi,νpi,ωi]
-                    ΣLoc_d[νn] -= gImp[νpn] * gImp[νpn + ωm] * gImp[νn + ωm] * Fd[νi,νpi,ωi]
+                    ΣLoc_m[νn] += gImp[νpn] * gImp[νpn + ωm] * gImp[νn + ωm] * Fm[ωi,νi,νpi]
+                    ΣLoc_d[νn] -= gImp[νpn] * gImp[νpn + ωm] * gImp[νn + ωm] * Fd[ωi,νi,νpi]
                 end
             end
         end
