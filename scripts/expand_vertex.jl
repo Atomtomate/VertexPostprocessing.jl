@@ -29,7 +29,7 @@ if length(ARGS) != 3
     exit(1)
 end
 
-freqListFile = ARGS[1]
+freqListFile = joinpath(ARGS[1],"freqList.jld2")
 dataDir      = ARGS[2]
 legacy_mode  = parse(Bool, ARGS[3])
 
