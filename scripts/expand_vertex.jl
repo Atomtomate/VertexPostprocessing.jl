@@ -42,6 +42,9 @@ println("Done expanding!")
 
 println("Calculating single particle Green's function")
 U, β, p, νnGrid, G0W, GImp, μ, nden = restore_1pt_GF(joinpath(dataDir, "config.toml"), joinpath(dataDir, "hubb.andpar"); nFreq=2000)
+gLoc = nothing
+println("mu = $μ, U= $U, beta = $β, nden = $nden")
+println("andpar: \n $p")
 E_kin_DMFT = calc_EKin_DMFT(νnGrid[0:end], p.ϵₖ, p.Vₖ, GImp[0:end], nden, U, β, μ)
 E_pot_DMFT = calc_EPot_DMFT(νnGrid[0:end], p.ϵₖ, p.Vₖ, GImp[0:end], nden, U, β, μ)
 
@@ -69,6 +72,26 @@ _, χ_d_asympt, χ_m_asympt, χ_pp_asympt = res
 # Φs = Fs .- Γs
 # Φt = Ft .- Γt
 println("Done with pp channel!")
+
+ΣLoc_m, ΣLoc_d = calc_local_EoM(Fm, Fd, GImp, U, β, nden, nBose, nFermi, shift)
+local_EoM_check = abs.(0.5 .* (ΣLoc_m .+ ΣLoc_d) .- ΣImp[axes(ΣLoc_m,1)])
+fitCheck = if !isnothing(gLoc)
+    abs.(gLoc .- G0W)
+else
+    lDGAPostprocessing.OffsetVector(repeat([NaN], 6), 0:5)
+end
+sum_vk, min_eps_diff, min_vk, min_eps = andpar_check_values(ϵₖ, Vₖ)
+println(repeat("=",80))
+println(" ϵₖ = $(lpad.(round.(ϵₖ, digits=4),9)...)")
+println(" Vₖ = $(lpad.(round.(Vₖ, digits=4),9)...)")
+println("   1. min(|Vₖ|)           = ", min_vk)
+println("   2. ∑Vₗ^2               = ", sum_vk)
+println("   3. min(|ϵₖ|)           = ", min_eps)
+println("   4. min(|ϵₖ - ϵₗ|)      = ", min_eps_diff)
+println("   5. |GLoc - G0W|[ν]     = ", fitCheck[0:5])
+println("   6. |ΣImp - Σ_2part|[ν] = ", local_EoM_check[0:5])
+println(repeat("=",80))
+
 println("Storing results in DMFT_out.jld2")
 # #-1.0 .*  Γr
 jldopen(joinpath(dataDir,"DMFT2_out.jld2"), "w") do f

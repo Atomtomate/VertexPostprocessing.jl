@@ -15,7 +15,7 @@ export G2_to_χ, computeΓ_ph, computeΓ_pp, computeF_ph, computeF_pp
 
 export compute_χ0 
 export add_GG_ω0,  add_GG_ω0!
-export calc_EKin_DMFT, calc_EPot_DMFT
+export calc_EKin_DMFT, calc_EPot_DMFT, calc_local_EoM, andpar_check_values
 
 include("IO_legacy.jl")
 include("IO.jl")
