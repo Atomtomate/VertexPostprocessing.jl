@@ -43,3 +43,43 @@ function expand_2pt_GF(TwoPartGF_upup::Vector, TwoPartGF_updo::Vector, transform
     end
     return Fup_full, Fdo_full
 end
+
+"""
+    combine_TwoPartGF(
+        freqList_1::Vector, freqList_2::Vector, 
+        TwoPartGF_upup_1::Vector, TwoPartGF_upup_2::Vector,
+        TwoPartGF_updo_1::Vector, TwoPartGF_updo_2::Vector
+    )
+
+Combines two 2-particle Green's functions.
+The smaller frequency grid must be fully contained in the larger one.
+"""
+function combine_TwoPartGF(
+        freqList_1::Vector, freqList_2::Vector, 
+        TwoPartGF_upup_1::Vector, TwoPartGF_upup_2::Vector,
+        TwoPartGF_updo_1::Vector, TwoPartGF_updo_2::Vector
+    )
+    prio_on_1 = length(freqList_1) > length(freqList_2)
+    freqList = prio_on_1 ? freqList_1 : freqList_2
+    freqList_t = deepcopy(freqList)
+    ii = sortperm(freqList)
+    freqListSorted = freqList[ii]
+    freqList_small = !prio_on_1 ? freqList_1 : freqList_2
+    TwoPartGF_upup = prio_on_1 ? TwoPartGF_upup_1 : TwoPartGF_upup_2
+    TwoPartGF_updo = prio_on_1 ? TwoPartGF_updo_1 : TwoPartGF_updo_2
+    TwoPartGF_upup_small = !prio_on_1 ? TwoPartGF_upup_1 : TwoPartGF_upup_2
+    TwoPartGF_updo_small = !prio_on_1 ? TwoPartGF_updo_1 : TwoPartGF_updo_2
+
+    indices = zeros(Int, length(freqList_small))
+    for (i,f) in enumerate(freqList_small)
+        ind = searchsortedfirst(freqListSorted, f) #findfirst(x-> all(x .== f), freqList)
+        if isnothing(ind)
+            error("Key from smaller frequency list not found in larger one! Non-overlapping lists not implemented yet!")
+        else
+            TwoPartGF_upup[ii[ind]] = TwoPartGF_upup[i]
+            TwoPartGF_updo[ii[ind]] = TwoPartGF_updo[i]
+            #Debug: freqList_t[ii[ind]] = f 
+        end
+    end
+    return TwoPartGF_upup, TwoPartGF_updo
+end

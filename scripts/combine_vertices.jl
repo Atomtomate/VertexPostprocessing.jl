@@ -1,10 +1,11 @@
 # ==================================================================================================== #
-#                                        expand_vertex.jl                                              #
+#                                       combine_TwoPartGF.jl                                           #
 # ---------------------------------------------------------------------------------------------------- #
 #   Authors         : Julian Stobbe                                                                    #
 # ----------------------------------------- Description ---------------------------------------------- #
-#   Produces an input file for LadderDAG.jl.                                                           #
-#   This script takes 2+1 argumentes:                                                                  #
+#   Produces an input file for LadderDAG.jl by combining two two particle Green's functions..          #
+#   WARNING: For now the resulting vertex has just the frequency list of the larger of the two!        #
+#   This script takes 5 argumentes:                                                                    #
 #   ARGS[1]: Path tp frequency list file, produced by EquivalenceClassesCosntructor.jl                 #
 #   ARGS[2]: dataPath. It is epxected that this directory contains 3 files:                            #
 #     - 2_part_gf_red (two-particle GF in frequency notation according to G.Rohringer PhD Thesis)      #
@@ -13,8 +14,11 @@
 #         - bath levels starting from line 10                                                          #
 #         - hoppings starting from line 10+NBathsites+1 (one comment line above between levels and hoppings)
 #         - chemical potential mu in the last line                                                     #
-#   ARGS[3]: legacy_mode (optional). This reads a vert_chi instead of a 2_part_gf_red                  #
+#   ARGS[3]: The same as ARGS[1], but for additional vertex                                            #
+#   ARGS[4]: The same as ARGS[2], for for addiotonal vertex                                            #
+#   ARGS[5]: Output path+name                                                                          #
 # -------------------------------------------- TODO -------------------------------------------------- #
+#   Add capability of combining distinct (non-overlapping) frequency lists!                            #
 # ==================================================================================================== #
 
 using Pkg
@@ -22,24 +26,41 @@ Pkg.activate(joinpath(@__DIR__,".."))
 using VertexPostprocessing
 using JLD2
 
-if length(ARGS) != 3
-    println("ERROR: expected 3 command line arguments. Please provide 
-                (1) path to frequency file generated from EquivalencyClassesConstructor.jl 
-                (2) path to DataDir, containing `config.toml`, `hubb.andpar` and `chi_asympt`.
-                (3) Bool for legacy_mode (if True, vert_chi will be read, otherwise 2_part_gf_red). In legacy mode the G*G contribution has already been subtracted.")
-    exit(1)
-end
-
 freqListFile = joinpath(ARGS[1],"freqList.jld2")
 dataDir      = ARGS[2]
-legacy_mode  = parse(Bool, ARGS[3])
+legacy_mode  = false
+fname = "2_part_gf_red"
 
-include(joinpath(@__DIR__,"expand_vertex_no_save.jl"))
+println("Expanding Vertex 1")
+nBose_1, nFermi_1, shift_1, freqList_1, TwoPartGF_upup_1, TwoPartGF_updo_1 = expand_2PtGF_CSV(freqListFile, joinpath(dataDir, fname))
+println("Done expanding Vertex 1!")
+
+freqListFile = joinpath(ARGS[3],"freqList.jld2")
+dataDir      = ARGS[4]
+outFileName  = ARGS[5]
+
+println("Expanding Vertex 2")
+nBose_2, nFermi_2, shift_2, freqList_2, TwoPartGF_upup_2, TwoPartGF_updo_2 = expand_2PtGF_CSV(freqListFile, joinpath(dataDir, fname))
+println("Done expanding Vertex 2!")
+
+
+TwoPartGF_upup, TwoPartGF_updo = combine_TwoPartGF(
+        freqList_1, freqList_2, 
+        TwoPartGF_upup_1, TwoPartGF_upup_2,
+        TwoPartGF_updo_1, TwoPartGF_updo_2
+    );
+println("Done combining!")
+prio_on_1 = length(freqList_1) > length(freqList_2)
+nBose = prio_on_1 ? nBose_1 : nBose_2 
+nFermi = prio_on_1 ? nFermi_1 : nFermi_2 
+shift = prio_on_1 ? shift_1 : shift_2 
+freqList = prio_on_1 ? freqList_1 : freqList_2 
+
 include(joinpath(@__DIR__,"calc_quantities.jl"))
 
 println("Storing results in DMFT_out.jld2")
 # #-1.0 .*  Γr
-jldopen(joinpath(dataDir,"DMFT2_out.jld2"), "w") do f
+jldopen(outFileName, "w") do f
     f["Γch"] = -Γd      # Convention for lDGA is Γ → - Γ
     f["Γsp"] = -Γm
     f["Φpp_s"] = Φs

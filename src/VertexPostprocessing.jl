@@ -6,7 +6,7 @@ using DataStructures  # For SVertex
 using jED             # avoid reading gm_wim and restore single particle GF
 using OffsetArrays
 
-export expand_2PtGF_CSV, restore_1pt_GF, read_chi_asympt
+export expand_2PtGF_CSV, combine_TwoPartGF, restore_1pt_GF, read_chi_asympt
 # channel transforms
 export uu_ud_TO_m_d, m_d_TO_uu_ud, χph_to_χpp
 # helpers
