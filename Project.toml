@@ -1,7 +1,7 @@
 name = "VertexPostprocessing"
 uuid = "2f788758-07b9-470e-9aa0-514f6555de3a"
 authors = ["Julian Stobbe <a@b.c>"]
-version = "1.2.0"
+version = "1.2.1"
 
 [deps]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
