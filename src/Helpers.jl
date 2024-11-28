@@ -27,7 +27,17 @@ This also respects shifted grids, if `shift = True`.
 `nFermi` and `nBose` are the maximum number of positive fermionic and bosonic indices.
 """
 function Freq_to_OneToIndex(ωn::Int, νn::Int, νpn::Int, shift::Union{Bool,Int}, nBose::Int, nFermi::Int)
-    (ωn+nBose+1,νn+nFermi+1+trunc(Int, shift*ωn/2), νpn+nFermi+1+trunc(Int, shift*ωn/2))
+    ωn+nBose+1,νn+nFermi+1+trunc(Int, shift*ωn/2), νpn+nFermi+1+trunc(Int, shift*ωn/2)
+end
+
+function OneToIndex_to_Freq(ωi::Int, νi::Int, shift::Union{Bool,Int}, nBose::Int, nFermi::Int)
+    ωn = ωi - nBose - 1
+    νn = (νi - nFermi - 1) - shift * trunc(Int, ωn / 2)
+    return ωn, νn
+end
+
+function νnGrid(ωm::Int, shift::Union{Bool,Int}, nFermi::Int)
+    (-nFermi:(nFermi-1)) .- shift * trunc(Int, ωm/2)
 end
 
 """

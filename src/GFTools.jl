@@ -90,20 +90,44 @@ end
 
 Computes `Fm` and `Fd` from `χm` and `χd`
 """
-function computeF_ph(freqList::Array, χm::Array{T}, χd::Array{T}, χ0::OffsetMatrix, nBose::Int, nFermi::Int) where T
-    @assert ndims(freqList) == ndims(χm)
-    @assert ndims(χd) == ndims(χm)
-    Fm = similar(χm)
-    Fd = similar(χd)
-    for i in 1:size(freqList,1)
-        ω, ν, νp = freqList[i]
-        sub = ν == νp ? χ0[ω,ν] : 0.0
-        Fm[i] = (-1.0/χ0[ω,ν])*(χm[i] - sub)*(1.0/χ0[ω,νp])
-        Fd[i] = (-1.0/χ0[ω,ν])*(χd[i] - sub)*(1.0/χ0[ω,νp])
-    end
-    return reshape_lin_to_rank3(Fm,nBose,nFermi), reshape_lin_to_rank3(Fd,nBose,nFermi)
+function F_from_χ(
+        χ::AbstractArray{ComplexF64,1}, G::AbstractVector{ComplexF64},
+        shift::Union{Bool,Int}, nBose::Int, nFermi::Int,β::Float64, type::Symbol
+    )
+    χ_tmp = reshape_lin_to_rank3(deepcopy(χ), nBose, nFermi)
+    F_from_χ(χ_tmp, G, shift, nBose, nFermi, β, type)
 end
 
+function F_from_χ(
+        χ::AbstractArray{ComplexF64,3}, G::AbstractVector{ComplexF64},
+        shift::Union{Bool,Int}, nBose::Int, nFermi::Int, β::Float64, type::Symbol; 
+    )
+    @assert size(χ,1) == 2*nBose+1
+    @assert size(χ,2) == 2*nFermi
+    @assert size(χ,3) == 2*nFermi
+    F = similar(χ)
+    for (ωi,ωm) in enumerate(-nBose:nBose)
+        for (νi,νn) in enumerate(νnGrid(ωm, shift, nFermi))
+            for (νpi,νpn) in enumerate(νnGrid(ωm, shift, nFermi))
+                diag_term = if (νn == νpn)
+                    if type == :ph || type == :m || type == :d
+                         β * G[νn] * G[ωm+νn]
+                    elseif type == :s
+                        error("Not implemented type $type")
+                    elseif type == :t
+                        error("Not implemented type $type")
+                    else
+                        error("Unkown type $type")
+                    end
+                else
+                    0.0
+                end
+                F[ωi,νi,νpi] = -(χ[ωi,νi,νpi] + diag_term) / (G[νn] * G[ωm+νn] * G[νpn] * G[ωm+νpn])
+            end
+        end
+    end
+    return F
+end
 function computeF_pp(freqList::Array, χ_s::Array{T}, χ_t::Array{T}, χ0::OffsetMatrix, nBose::Int, nFermi::Int) where T
     @assert ndims(freqList) == ndims(χ_s)
     @assert ndims(χ_t) == ndims(χ_s)

@@ -57,7 +57,8 @@ end
 χm, χd = uu_ud_TO_m_d(χ_upup, χ_updo)
 
 χ0_full = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β)
-Fm, Fd = computeF_ph(freqList, χm, χd, χ0_full, nBose, nFermi)
+Fm = F_from_χ(χm, GImp, shift, nBose, nFermi,β, :m)
+Fd = F_from_χ(χd, GImp, shift, nBose, nFermi,β, :d)
 Γm = computeΓ_ph(freqList, χm, χ0_full, nBose, nFermi)
 Γd = computeΓ_ph(freqList, χd, χ0_full, nBose, nFermi)
 println("Done with ph channel!")
@@ -74,7 +75,8 @@ Fs, Ft       = computeF_pp(freqList, χpp_s, χpp_t, χ0_pp_full, nBose, nFermi)
 println("Done with pp channel!")
 
 ΣLoc_m, ΣLoc_d = calc_local_EoM(Fm, Fd, GImp, U, β, nden, nBose, nFermi, shift)
-local_EoM_check = abs.(0.5 .* (ΣLoc_m .+ ΣLoc_d) .- ΣImp[axes(ΣLoc_m,1)])
+loc_EoM = 0.5 .* (ΣLoc_m .+ ΣLoc_d)
+local_EoM_check = abs.(loc_EoM .- ΣImp[axes(ΣLoc_m,1)])
 fitCheck = if !isnothing(gLoc)
     abs.(gLoc .- G0W)
 else
@@ -97,8 +99,8 @@ println("Storing results in DMFT_out.jld2")
 jldopen(joinpath(dataDir,"DMFT2_out.jld2"), "w") do f
     f["Γch"] = -Γd      # Convention for lDGA is Γ → - Γ
     f["Γsp"] = -Γm
-    # f["Φpp_s"] = Φs
-    # f["Φpp_t"] = Φt
+    f["Φpp_s"] = Φs
+    f["Φpp_t"] = Φt
     f["χDMFTch"] = reshape_lin_to_rank3(χd,nBose,nFermi)
     f["χDMFTsp"] = reshape_lin_to_rank3(χm,nBose,nFermi)
     f["χ_ch_asympt"] = χ_d_asympt
