@@ -22,24 +22,26 @@ Pkg.activate(joinpath(@__DIR__,".."))
 using VertexPostprocessing
 using JLD2
 
-if length(ARGS) != 3
-    println("ERROR: expected 3 command line arguments. Please provide 
-                (1) path to frequency file generated from EquivalencyClassesConstructor.jl 
-                (2) path to DataDir, containing `config.toml`, `hubb.andpar` and `chi_asympt`.
-                (3) Bool for legacy_mode (if True, vert_chi will be read, otherwise 2_part_gf_red). In legacy mode the G*G contribution has already been subtracted.")
+if length(ARGS) < 3
+    println("ERROR: expected 3 (+1) command line arguments. Please provide\n
+                (1) path to frequency file generated from EquivalencyClassesConstructor.jl\n
+                (2) path to DataDir, containing `config.toml`, `hubb.andpar` and `chi_asympt`.\n
+                (3) Bool for legacy_mode (if True, vert_chi will be read, otherwise 2_part_gf_red). In legacy mode the G*G contribution has already been subtracted.\n
+                (4) (optional) filename of the output file. Default is DMFT2_out.jld2")
     exit(1)
 end
 
 freqListFile = joinpath(ARGS[1],"freqList.jld2")
 dataDir      = ARGS[2]
 legacy_mode  = parse(Bool, ARGS[3])
+fname = length(ARGS) > 3 ? ARGS[4] : "DMFT2_out.jld2"
 
 include(joinpath(@__DIR__,"expand_vertex_no_save.jl"))
 include(joinpath(@__DIR__,"calc_quantities.jl"))
 
 println("Storing results in DMFT_out.jld2")
 # #-1.0 .*  Γr
-jldopen(joinpath(dataDir,"DMFT2_out.jld2"), "w") do f
+jldopen(joinpath(dataDir, fname), "w") do f
     f["Γch"] = -Γd      # Convention for lDGA is Γ → - Γ
     f["Γsp"] = -Γm
     f["Φpp_s"] = Φs
