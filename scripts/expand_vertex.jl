@@ -53,8 +53,8 @@ jldopen(joinpath(dataDir, ofname), "w") do f
     f["χ_ch_asympt"] = χ_d_asympt
     f["χ_sp_asympt"] = χ_m_asympt
     f["χ_pp_asympt"] = χ_pp_asympt
-    f["gImp"] = GImp.parent
-    f["g0"] = G0W.parent
+    f["gImp"] = GImp[0:end]
+    f["g0"] = G0W[0:end]
     f["ϵₖ"] = p.ϵₖ
     f["Vₖ"] = p.Vₖ
     f["μ"] = μ
