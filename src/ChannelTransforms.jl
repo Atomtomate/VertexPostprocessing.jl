@@ -41,7 +41,7 @@ end
 transforms susceptibilities in particle-hole notation for the `↑↑` and `↑↓` spin channels into particle-particle
 notation in the singlet and triplet channels.
 """
-function χph_to_χpp(freqList::Vector{Tuple{Int,Int,Int}}, χph_upup::Vector, χph_updo::Vector, χ0::OffsetMatrix, shift, nBose::Int, nFermi::Int)
+function χph_to_χpp(freqList::Vector{Tuple{Int,Int,Int}}, χph_upup::Vector, χph_updo::Vector, χ0_pp::OffsetMatrix, shift, nBose::Int, nFermi::Int)
     χpp_s = similar(χph_upup)
     χpp_t = similar(χph_upup)
     χpp_s = fill!(χpp_s, NaN)
@@ -54,8 +54,8 @@ function χph_to_χpp(freqList::Vector{Tuple{Int,Int,Int}}, χph_upup::Vector, �
         ωi,νi,νpi = Freq_to_OneToIndex(ωn, νn, νpn, shift, nBose, nFermi)
         ωi_ph,νi_ph,νpi_ph = Freq_to_OneToIndex(ωn - νn - νpn - 1, νn, νpn, shift, nBose, nFermi)
         if !(any((ωi,νi,νpi) .< 1) || any((ωi_ph,νi_ph,νpi_ph) .< 1) || any((ωi,νi,νpi) .> (2*nBose,2*nFermi-1,2*nFermi-1)) || any((ωi_ph,νi_ph,νpi_ph) .> (2*nBose,2*nFermi-1,2*nFermi-1)))
-            χpp_s[i] = - χ0[ωn,νn]*(νn==νpn) - χph_upup_tmp[ωi_ph,νi_ph,νpi_ph] + 2*χph_updo_tmp[ωi_ph,νi_ph,νpi_ph]
-            χpp_t[i] = + χ0[ωn,νn]*(νn==νpn) + χph_upup_tmp[ωi_ph,νi_ph,νpi_ph]
+            χpp_s[i] = 2*χph_updo_tmp[ωi_ph,νi_ph,νpi_ph] - χph_upup_tmp[ωi_ph,νi_ph,νpi_ph] - ((νn == νpn) ? χ0_pp[ωn, νn] : 0.0)
+            χpp_t[i] = χph_upup_tmp[ωi_ph,νi_ph,νpi_ph] + ((νn == νpn) ? χ0_pp[ωn, νn] : 0.0)
         end
     end
     χpp_s, χpp_t

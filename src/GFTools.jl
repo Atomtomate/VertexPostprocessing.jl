@@ -66,7 +66,7 @@ Computes bare susceptibility from Green's function `G` for particle-particle or 
 Warning! `G` must fulfill ``G^{-\\nu} = conj(G^{\\nu})``
 """
 function compute_χ0(ω_range::AbstractArray{Int,1}, ν_range::AbstractArray{Int,1}, G::Array{Complex{Float64}, 1}, β::Float64; mode=:ph)
-    !(mode in [:ph, :pp]) && error("unkown mode")
+    @assert mode in [:ph, :pp]
     χ0 = OffsetArray(Array{ComplexF64,2}(undef, length(ω_range), length(ν_range))) 
     for ωm in ω_range, νn in ν_range
         χ0[ωm,νn] = (mode == :ph) ? -β*get_conjsymm_f(G, νn)*get_conjsymm_f(G, νn+ωm) : -β*get_conjsymm_f(G, νn)*get_conjsymm_f(G, ωm-νn-1)
@@ -75,10 +75,10 @@ function compute_χ0(ω_range::AbstractArray{Int,1}, ν_range::AbstractArray{Int
 end
 
 function compute_χ0(ω_range::AbstractArray{Int,1}, ν_range::AbstractArray{Int,1}, G::OffsetArray{Complex{Float64}, 1}, β::Float64; mode=:ph)
-    !(mode in [:ph, :pp]) && error("unkown mode")
+    @assert mode in [:ph, :pp]
     χ0 = OffsetArray(Array{ComplexF64,2}(undef, length(ω_range), length(ν_range)), ω_range, ν_range) 
     for ωm in ω_range, νn in ν_range
-        χ0[ωm,νn] = (mode == :ph) ? -β*G[νn]*G[νn+ωm] : -β*G[νn]*G[ωm-νn-1]
+        χ0[ωm,νn] = (mode == :ph) ? -β*G[νn]*G[ωm+νn] : -β*G[νn]*G[ωm-νn-1]
     end
     return χ0
 end
@@ -86,60 +86,48 @@ end
 # -------------- Irreducible Vertex ----------------
 # ------------------ Full Vertex -------------------
 """
-    computeF_ph(freqList::Vector, χm::Vector{T}, χd::Vector{T}, χ0::Dict{Tuple{Int,Int},Complex{Float64}}, nBose::Int, nFermi::Int) where T
+    F_from_χ(
+        channel::Symbol, χ, χ0::OffsetMatrix,
+        shift::Union{Bool,Int}, nBose::Int, nFermi::Int; 
+    )
 
-Computes `Fm` and `Fd` from `χm` and `χd`
+Computes `F_r` from `χ_r` for `r = d, m, s, t` given `channel`.
 """
 function F_from_χ(
-        χ::AbstractArray{ComplexF64,1}, G::AbstractVector{ComplexF64},
-        shift::Union{Bool,Int}, nBose::Int, nFermi::Int,β::Float64, type::Symbol
+        channel::Symbol, χ::AbstractArray{ComplexF64,1}, χ0::OffsetMatrix,
+        shift::Union{Bool,Int}, nBose::Int, nFermi::Int
     )
     χ_tmp = reshape_lin_to_rank3(deepcopy(χ), nBose, nFermi)
-    F_from_χ(χ_tmp, G, shift, nBose, nFermi, β, type)
+    F_from_χ(channel, χ_tmp, χ0, shift, nBose, nFermi)
 end
 
 function F_from_χ(
-        χ::AbstractArray{ComplexF64,3}, G::AbstractVector{ComplexF64},
-        shift::Union{Bool,Int}, nBose::Int, nFermi::Int, β::Float64, type::Symbol; 
+        channel::Symbol, χ::AbstractArray{ComplexF64,3}, χ0::OffsetMatrix,
+        shift::Union{Bool,Int}, nBose::Int, nFermi::Int; 
     )
     @assert size(χ,1) == 2*nBose+1
     @assert size(χ,2) == 2*nFermi
     @assert size(χ,3) == 2*nFermi
+    @assert channel in [:d, :m, :s, :t]
+    diag_factor = if channel == :s
+            -2
+        elseif channel == :t
+            2
+        elseif channel == :d || channel == :m
+            1
+        else
+            throw(ArgumentError("Invalid channel $channel"))
+        end
     F = similar(χ)
     for (ωi,ωm) in enumerate(-nBose:nBose)
         for (νi,νn) in enumerate(νnGrid(ωm, shift, nFermi))
             for (νpi,νpn) in enumerate(νnGrid(ωm, shift, nFermi))
-                diag_term = if (νn == νpn)
-                    if type == :ph || type == :m || type == :d
-                         β * G[νn] * G[ωm+νn]
-                    elseif type == :s
-                        error("Not implemented type $type")
-                    elseif type == :t
-                        error("Not implemented type $type")
-                    else
-                        error("Unkown type $type")
-                    end
-                else
-                    0.0
-                end
-                F[ωi,νi,νpi] = -(χ[ωi,νi,νpi] + diag_term) / (G[νn] * G[ωm+νn] * G[νpn] * G[ωm+νpn])
+                diag_term = (νn == νpn) ? diag_factor*χ0[ωm,νn] : 0.0
+                F[ωi,νi,νpi] = -(χ[ωi,νi,νpi] - diag_term) / (χ0[ωm,νn] * χ0[ωm,νpn])
             end
         end
     end
     return F
-end
-function computeF_pp(freqList::Array, χ_s::Array{T}, χ_t::Array{T}, χ0::OffsetMatrix, nBose::Int, nFermi::Int) where T
-    @assert ndims(freqList) == ndims(χ_s)
-    @assert ndims(χ_t) == ndims(χ_s)
-    F_s = similar(χ_s)
-    F_t = similar(χ_t)
-    for i in 1:size(freqList,1)
-        ω, ν, νp = freqList[i]
-        sub = ν == νp ? χ0[ω,ν] : 0.0
-        F_s[i] = (-1.0/χ0[ω,ν])*(χ_s[i] + 2*sub)*(1.0/χ0[ω,νp])
-        F_t[i] = (-1.0/χ0[ω,ν])*(χ_t[i] - 2*sub)*(1.0/χ0[ω,νp])
-    end
-    return reshape_lin_to_rank3(F_s,nBose,nFermi), reshape_lin_to_rank3(F_t,nBose,nFermi)
 end
 
 """
@@ -163,24 +151,6 @@ function G2_to_χ!(res::Array, freqList::Array, in::Array, gImp::OffsetArray{Com
             res[i] = in[i] - β*gImp[ν]*gImp[νp]
         end
     end
-end
-
-
-function computeχ0(ω_range::AbstractArray{Int,1}, ν_range::AbstractArray{Int,1}, gImp::OffsetArray, β::Float64; mode=:ph)
-    !(mode in [:ph, :pp]) && error("unkown mode")
-    χ0 = Dict{Tuple{Int,Int},Complex{Float64}}()
-    for ω in ω_range, ν in ν_range
-        χ0[(ω,ν)] = (mode == :ph) ? -β*gImp[ν]*gImp[ν+ω] : -β*gImp[ν]*gImp[ω-ν-1]
-    end
-    return χ0
-end
-function computeχ0(ω_range::AbstractArray{Int,1}, ν_range::AbstractArray{Int,1}, gImp::Array{Complex{Float64}, 1}, β::Float64; mode=:ph)
-    !(mode in [:ph, :pp]) && error("unkown mode")
-    χ0 = Dict{Tuple{Int,Int},Complex{Float64}}()
-    for ω in ω_range, ν in ν_range
-        χ0[(ω,ν)] = (mode == :ph) ? -β*get_conjsymm_f(gImp, ν)*get_conjsymm_f(gImp, ν+ω) : -β*get_conjsymm_f(gImp, ν)*get_conjsymm_f(gImp, ω-ν-1)
-    end
-    return χ0
 end
 
 
@@ -212,7 +182,7 @@ function computeΓ_ph(freqList::Array{Tuple{Int,Int,Int},3}, χ_r::Array{Complex
 end
 
 function computeΓ_ph(freqList::Array{Tuple{Int,Int,Int},1}, χ_r::Array{ComplexF64,1}, χ0::OffsetMatrix{ComplexF64}, nBose::Int64, nFermi::Int64)
-    return computeΓ_ph( reshape_lin_to_rank3(freqList,nBose,nFermi), reshape_lin_to_rank3(χ_r,nBose,nFermi), χ0, nBose, nFermi)
+    return computeΓ_ph(reshape_lin_to_rank3(freqList,nBose,nFermi), reshape_lin_to_rank3(χ_r,nBose,nFermi), χ0, nBose, nFermi)
 end
 
 """
@@ -231,10 +201,11 @@ function computeΓ_pp(freqList::Array{Tuple{Int,Int,Int},3}, χs::Array{T,3}, χ
     for ωi in axes(freqList,1)
         non_nan_slice = find_non_nan_matrix(χs[ωi,:,:], nFermi)
         if !isempty(non_nan_slice)
+            ωm = freqList[ωi,1,1][1]
+            νn_slice = map(x->x[3],freqList[ωi,1,non_nan_slice])
             Γs[ωi,non_nan_slice,non_nan_slice] = 4 .* inv(χs[ωi,non_nan_slice,non_nan_slice])
             Γt[ωi,non_nan_slice,non_nan_slice] = 4 .* inv(χt[ωi,non_nan_slice,non_nan_slice])
-            for νi in axes(freqList, 2)
-                ωm, νn, νpn = freqList[ωi,νi,νi] 
+            for (νi, νn) in zip(non_nan_slice, νn_slice)
                 Γs[ωi,νi,νi] += 2/χ0[ωm,νn]
                 Γt[ωi,νi,νi] -= 2/χ0[ωm,νn]
             end
@@ -283,7 +254,7 @@ end
 
 Runs 4 check for validity of Anderson parameters
 """
-function andpar_check_values(ϵₖ, Vₖ)
+function andpar_check_values(ϵₖ, Vₖ) 
     NSites = length(ϵₖ)
     min_epsk_diff = Inf
     min_Vₖ = minimum(abs.(Vₖ))

@@ -15,6 +15,9 @@ println("andpar: \n $p")
 E_kin_DMFT = calc_EKin_DMFT(νnGrid[0:end], p.ϵₖ, p.Vₖ, GImp[0:end], nden, U, β, μ)
 E_pot_DMFT = calc_EPot_DMFT(νnGrid[0:end], p.ϵₖ, p.Vₖ, GImp[0:end], nden, U, β, μ)
 
+res = isfile(joinpath(dataDir, "chi_asympt")) ? read_chi_asympt(joinpath(dataDir, "chi_asympt")) : error("chi_asympt not found!")
+_, χ_d_asympt, χ_m_asympt, χ_pp_asympt = res
+
 println("Calculating derived quantities. Rank 3 quantities have the index convention [ωm, νn, νpn]")
 χ_upup, χ_updo = if legacy_mode
     TwoPartGF_upup, TwoPartGF_updo
@@ -23,25 +26,24 @@ else
 end
 χm, χd = uu_ud_TO_m_d(χ_upup, χ_updo)
 
-χ0_full = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β)
-Fm = F_from_χ(χm, GImp, shift, nBose, nFermi,β, :m)
-Fd = F_from_χ(χd, GImp, shift, nBose, nFermi,β, :d)
+χ0_full = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β; mode=:ph)
+Fm = VertexPostprocessing.F_from_χ(χm, χ0_full, shift, nBose, nFermi)
+Fd = VertexPostprocessing.F_from_χ(χd, χ0_full, shift, nBose, nFermi)
 Γm = computeΓ_ph(freqList, χm, χ0_full, nBose, nFermi)
 Γd = computeΓ_ph(freqList, χd, χ0_full, nBose, nFermi)
 println("Done with ph channel!")
-res = isfile(joinpath(dataDir, "chi_asympt")) ? read_chi_asympt(joinpath(dataDir, "chi_asympt")) : error("chi_asympt not found!")
-_, χ_d_asympt, χ_m_asympt, χ_pp_asympt = res
 
 
 χ0_pp_full   = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β; mode=:pp)
-χpp_s, χpp_t = χph_to_χpp(freqList, χ_upup, χ_updo, χ0_pp_full, shift, nBose, nFermi)
-Fs, Ft       = computeF_pp(freqList, χpp_s, χpp_t, χ0_pp_full, nBose, nFermi)
+χs, χt = χph_to_χpp(freqList, χ_upup, χ_updo, χ0_pp_full, shift, nBose, nFermi)
+Fm = VertexPostprocessing.F_from_χ(χs, GImp, shift, nBose, nFermi, χ0_pp_full)
+Fd = VertexPostprocessing.F_from_χ(χt, GImp, shift, nBose, nFermi, χ0_pp_full)
 Γs, Γt       = computeΓ_pp(freqList, χpp_s, χpp_t, χ0_pp_full, nBose, nFermi)
 Φs = Fs .- Γs
 Φt = Ft .- Γt
 println("Done with pp channel!")
 
-ΣLoc_m, ΣLoc_d = calc_local_EoM(Fm, Fd, GImp, U, β, nden, nBose, nFermi, shift)
+ΣLoc_m, ΣLoc_d = VertexPostprocessing.calc_local_EoM(Fm, Fd, GImp, U, β, nden, nBose, nFermi, shift)
 loc_EoM = 0.5 .* (ΣLoc_m .+ ΣLoc_d)
 loc_EoM_diff_abs = abs.(loc_EoM .- ΣImp[axes(ΣLoc_m,1)]) 
 loc_EoM_diff_rel = round.(100 * loc_EoM_diff_abs ./ (abs.(loc_EoM) .+ abs.(ΣImp[axes(ΣLoc_m,1)])), digits=4)

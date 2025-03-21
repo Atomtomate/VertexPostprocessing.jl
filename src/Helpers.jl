@@ -56,9 +56,9 @@ function find_non_nan_matrix(data::Matrix, nFermi::Int)
         lim_up = isnothing(lim_up) ? length(t1) : lim_up
         lim_lo = isnothing(lim_lo) ? length(t2) : lim_lo
         lim_non_nan = min(lim_up, lim_lo)
-        (nFermi-lim_non_nan):(nFermi+lim_non_nan)
+        (nFermi-lim_non_nan+1):(nFermi+lim_non_nan)
     else
-        []
+        Int[]
     end
     return res
 end

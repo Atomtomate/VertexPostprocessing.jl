@@ -24,7 +24,7 @@ using JLD2
 
 if length(ARGS) < 3
     println("ERROR: expected 3 (+1) command line arguments. Please provide\n
-                (1) path to frequency file generated from EquivalencyClassesConstructor.jl\n
+                (1) path to directory of the frequency file generated from EquivalencyClassesConstructor.jl\n
                 (2) path to DataDir, containing `config.toml`, `hubb.andpar` and `chi_asympt`.\n
                 (3) Bool for legacy_mode (if True, vert_chi will be read, otherwise 2_part_gf_red). In legacy mode the G*G contribution has already been subtracted.\n
                 (4) (optional) filename of the output file. Default is DMFT2_out.jld2")
@@ -34,16 +34,18 @@ end
 freqListFile = joinpath(ARGS[1],"freqList.jld2")
 dataDir      = ARGS[2]
 legacy_mode  = parse(Bool, ARGS[3])
-fname = length(ARGS) > 3 ? ARGS[4] : "DMFT2_out.jld2"
+ofname = length(ARGS) > 3 ? ARGS[4] : "DMFT2_out.jld2"
 
 include(joinpath(@__DIR__,"expand_vertex_no_save.jl"))
 include(joinpath(@__DIR__,"calc_quantities.jl"))
 
-println("Storing results in DMFT_out.jld2")
+println("Storing results in $ofname")
 # #-1.0 .*  Γr
-jldopen(joinpath(dataDir, fname), "w") do f
+jldopen(joinpath(dataDir, ofname), "w") do f
     f["Γch"] = -Γd      # Convention for lDGA is Γ → - Γ
     f["Γsp"] = -Γm
+    f["Γs"] = Γs
+    f["Γt"] = Γt
     f["Φpp_s"] = Φs
     f["Φpp_t"] = Φt
     f["χDMFTch"] = reshape_lin_to_rank3(χd,nBose,nFermi)
