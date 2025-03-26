@@ -27,8 +27,8 @@ end
 χm, χd = uu_ud_TO_m_d(χ_upup, χ_updo)
 
 χ0_full = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β; mode=:ph)
-Fm = VertexPostprocessing.F_from_χ(:m, χm, χ0_full, shift, nBose, nFermi)
-Fd = VertexPostprocessing.F_from_χ(:d, χd, χ0_full, shift, nBose, nFermi)
+Fm = VertexPostprocessing.F_from_χ(:m, χm, χ0_full, β, shift, nBose, nFermi)
+Fd = VertexPostprocessing.F_from_χ(:d, χd, χ0_full, β, shift, nBose, nFermi)
 Γm = computeΓ_ph(freqList, χm, χ0_full, nBose, nFermi)
 Γd = computeΓ_ph(freqList, χd, χ0_full, nBose, nFermi)
 println("Done with ph channel!")
@@ -36,11 +36,11 @@ println("Done with ph channel!")
 
 χ0_pp_full   = compute_χ0(-nBose:nBose, -(nFermi+2*nBose):(nFermi+2*nBose)-1, GImp, β; mode=:pp)
 χs, χt = χph_to_χpp(freqList, χ_upup, χ_updo, χ0_pp_full, shift, nBose, nFermi)
-Fs = VertexPostprocessing.F_from_χ(:s, χs, χ0_pp_full, shift, nBose, nFermi)
-Ft = VertexPostprocessing.F_from_χ(:t, χt, χ0_pp_full, shift, nBose, nFermi)
+Fs = VertexPostprocessing.F_from_χ(:s, χs, χ0_pp_full, β, shift, nBose, nFermi)
+Ft = VertexPostprocessing.F_from_χ(:t, χt, χ0_pp_full, β, shift, nBose, nFermi)
 Γs, Γt       = computeΓ_pp(freqList, χs, χt, χ0_pp_full, nBose, nFermi)
-Φs = Fs .- Γs
-Φt = Ft .- Γt
+Φs = Fs .- Γs .* β^2
+Φt = Ft .- Γt .* β^2
 println("Done with pp channel!")
 
 ΣLoc_m, ΣLoc_d = VertexPostprocessing.calc_local_EoM(Fm, Fd, GImp, U, β, nden, nBose, nFermi, shift)

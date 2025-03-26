@@ -94,15 +94,15 @@ end
 Computes `F_r` from `χ_r` for `r = d, m, s, t` given `channel`.
 """
 function F_from_χ(
-        channel::Symbol, χ::AbstractArray{ComplexF64,1}, χ0::OffsetMatrix,
+        channel::Symbol, χ::AbstractArray{ComplexF64,1}, χ0::OffsetMatrix, β::Float64,
         shift::Union{Bool,Int}, nBose::Int, nFermi::Int
     )
     χ_tmp = reshape_lin_to_rank3(deepcopy(χ), nBose, nFermi)
-    F_from_χ(channel, χ_tmp, χ0, shift, nBose, nFermi)
+    F_from_χ(channel, χ_tmp, χ0, β, shift, nBose, nFermi)
 end
 
 function F_from_χ(
-        channel::Symbol, χ::AbstractArray{ComplexF64,3}, χ0::OffsetMatrix,
+        channel::Symbol, χ::AbstractArray{ComplexF64,3}, χ0::OffsetMatrix, β::Float64,
         shift::Union{Bool,Int}, nBose::Int, nFermi::Int; 
     )
     @assert size(χ,1) == 2*nBose+1
@@ -123,7 +123,7 @@ function F_from_χ(
         for (νi,νn) in enumerate(νnGrid(ωm, shift, nFermi))
             for (νpi,νpn) in enumerate(νnGrid(ωm, shift, nFermi))
                 diag_term = (νn == νpn) ? diag_factor*χ0[ωm,νn] : 0.0
-                F[ωi,νi,νpi] = -(χ[ωi,νi,νpi] - diag_term) / (χ0[ωm,νn] * χ0[ωm,νpn])
+                F[ωi,νi,νpi] = -β^2 * (χ[ωi,νi,νpi] - diag_term) / (χ0[ωm,νn] * χ0[ωm,νpn])
             end
         end
     end
