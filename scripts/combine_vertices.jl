@@ -15,7 +15,7 @@
 #         - hoppings starting from line 10+NBathsites+1 (one comment line above between levels and hoppings)
 #         - chemical potential mu in the last line                                                     #
 #   ARGS[3]: The same as ARGS[1], but for additional vertex                                            #
-#   ARGS[4]: The same as ARGS[2], for for addiotonal vertex                                            #
+#   ARGS[4]: The same as ARGS[2], for for additional vertex                                            #
 #   ARGS[5]: Output path+name                                                                          #
 # -------------------------------------------- TODO -------------------------------------------------- #
 #   Add capability of combining distinct (non-overlapping) frequency lists!                            #
@@ -58,7 +58,7 @@ freqList = prio_on_1 ? freqList_1 : freqList_2
 
 include(joinpath(@__DIR__,"calc_quantities.jl"))
 
-println("Storing results in DMFT_out.jld2")
+println("Storing results in $outFileName")
 # #-1.0 .*  Γr
 jldopen(outFileName, "w") do f
     f["Γch"] = -Γd      # Convention for lDGA is Γ → - Γ
